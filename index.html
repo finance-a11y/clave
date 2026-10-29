@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔐 Bóveda aprendoclub</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;
+  --acc:#7c3aed;--acc2:#6d28d9;--bad:#dc2626;
+  --txt:#e6edf3;--txt2:#8b949e;--r:10px;--sh:0 8px 32px rgba(0,0,0,.5)
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;font-size:14px;line-height:1.5}
+
+/* ── SCREENS ── */
+.scr{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.scr.on{display:flex}
+#scr-app.on{display:block}
+
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:36px;width:100%;max-width:440px;text-align:center;box-shadow:var(--sh)}
+.ico{font-size:48px;margin-bottom:14px;display:block}
+.ttl{font-size:21px;font-weight:700;margin-bottom:6px}
+.sub{color:var(--txt2);font-size:13px;margin-bottom:22px}
+
+/* ── FORMS ── */
+.fg{margin-bottom:12px;text-align:left}
+.fg label{display:block;font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.fg input,.fg select,.fg textarea{width:100%;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;color:var(--txt);font-size:14px;outline:none;transition:border-color .2s;font-family:inherit}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--acc)}
+.fg select option{background:var(--bg2)}
+.fg textarea{min-height:65px;resize:vertical}
+.fw{position:relative;margin-bottom:12px}
+.fw input{width:100%;padding:11px 42px 11px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--txt);font-size:15px;outline:none;transition:border-color .2s}
+.fw input:focus{border-color:var(--acc)}
+.fw input::placeholder{color:var(--txt2)}
+.eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--txt2);cursor:pointer;font-size:16px;line-height:1;padding:4px}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:11px 18px;border-radius:8px;border:none;cursor:pointer;font-size:14px;font-weight:600;transition:all .15s;font-family:inherit}
+.btn-pri{background:var(--acc);color:#fff;width:100%;justify-content:center;font-size:15px;padding:12px}
+.btn-pri:hover{background:var(--acc2);transform:translateY(-1px)}
+.btn-sm{padding:5px 10px;font-size:12px;border-radius:6px}
+.btn-ghost{background:transparent;color:var(--txt2);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--bg3);color:var(--txt)}
+.btn-red{background:var(--bad);color:#fff}
+.btn-red:hover{filter:brightness(1.1)}
+.err{color:var(--bad);font-size:13px;margin-top:8px;min-height:18px}
+.hint{color:var(--txt2);font-size:12px;margin-top:8px}
+
+/* ── SETUP SCREEN ── */
+.steps{text-align:left;margin-bottom:14px}
+.step{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;font-size:13px;color:var(--txt2)}
+.step a{color:var(--acc);text-decoration:none}.step a:hover{text-decoration:underline}
+.step strong{color:var(--txt)}
+.sn{background:var(--acc);color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:1px}
+.sql{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:monospace;font-size:11px;text-align:left;color:#a5f3fc;white-space:pre;overflow-x:auto;margin:10px 0 8px}
+
+/* ── APP ── */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);height:56px;display:flex;align-items:center;padding:0 20px;gap:10px;position:sticky;top:0;z-index:10}
+.logo{font-size:16px;font-weight:800;flex:1}.logo span{color:var(--acc)}
+.sync{font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);color:var(--txt2)}
+.sync.ok{color:#4ade80;border-color:#4ade8055}
+.sync.no{color:#f87171;border-color:#f8717155}
+.main{padding:20px;max-width:980px;margin:0 auto}
+
+.banner{background:#78350f22;border:1px solid #78350f55;border-radius:8px;padding:10px 14px;font-size:12px;color:#fbbf24;margin-bottom:18px;display:flex;gap:8px;align-items:flex-start}
+.banner button{background:none;border:none;color:#fbbf24;cursor:pointer;font-size:16px;line-height:1;flex-shrink:0}
+
+.srow{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;flex:1;min-width:70px;text-align:center}
+.stat-n{font-size:22px;font-weight:800;color:var(--acc)}
+.stat-l{font-size:10px;color:var(--txt2);margin-top:2px}
+
+.qrow{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.sw{flex:1;min-width:180px;position:relative}
+.sw input{width:100%;padding:9px 14px 9px 36px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--txt);font-size:14px;outline:none;transition:border-color .2s}
+.sw input:focus{border-color:var(--acc)}
+.sw::before{content:'🔍';position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none}
+.sw input::placeholder{color:var(--txt2)}
+
+.cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+.cbt{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--bg2);color:var(--txt2);cursor:pointer;font-size:12px;font-weight:500;transition:all .15s;font-family:inherit}
+.cbt:hover,.cbt.on{background:var(--acc);border-color:var(--acc);color:#fff}
+
+.grid{display:grid;gap:10px}
+.ec{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;transition:border-color .2s}
+.ec:hover{border-color:var(--acc)}
+.et{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
+.ei{width:38px;height:38px;border-radius:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.en{flex:1;min-width:0}
+.enm{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ect{font-size:11px;color:var(--txt2);margin-top:1px}
+.ea{display:flex;gap:5px;flex-shrink:0}
+.flds{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:520px){.flds{grid-template-columns:1fr}.srow{gap:6px}.topbar{gap:5px}}
+.fr{background:var(--bg3);border-radius:7px;padding:8px 10px}
+.fl{font-size:10px;color:var(--txt2);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px}
+.fv{font-size:12px;display:flex;align-items:center;gap:5px;word-break:break-all}
+.fv a{color:var(--acc);text-decoration:none;font-family:monospace}.fv a:hover{text-decoration:underline}
+.pm{letter-spacing:3px;font-size:16px;color:var(--txt2);font-family:monospace}
+.pc{font-family:monospace;font-size:12px;color:var(--txt)}
+.ib{background:none;border:none;color:var(--txt2);cursor:pointer;font-size:13px;padding:3px 5px;border-radius:4px;line-height:1;flex-shrink:0}
+.ib:hover{background:var(--border);color:var(--txt)}
+.tf{display:inline-flex;align-items:center;gap:4px;background:#78350f22;border:1px solid #78350f55;border-radius:5px;padding:2px 7px;font-size:11px;color:#fbbf24;font-weight:600}
+.nt{margin-top:10px;padding:8px 10px;background:var(--bg3);border-radius:7px;font-size:12px;color:var(--txt2);border-left:2px solid var(--acc)}
+
+/* ── MODAL ── */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:50;align-items:center;justify-content:center;padding:16px}
+.ov.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:var(--sh)}
+.mh{font-size:17px;font-weight:700;margin-bottom:18px}
+.mf{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+.dw{background:#dc262622;border:1px solid var(--bad);border-radius:8px;padding:10px;font-size:13px;margin-bottom:12px}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:20px;right:20px;background:var(--bg2);border:1px solid var(--border);color:var(--txt);padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;opacity:0;transform:translateY(8px);transition:all .3s;z-index:100;pointer-events:none}
+#toast.show{opacity:1;transform:translateY(0)}
+.empty{text-align:center;padding:50px 20px;color:var(--txt2)}
+.empty-i{font-size:40px;margin-bottom:10px}
+.empty-h{font-size:15px;color:var(--txt);margin-bottom:4px}
+</style>
+</head>
+<body>
+
+<!-- ══════════ PANTALLA 1: SETUP SUPABASE ══════════ -->
+<div class="scr" id="scr-setup">
+<div class="card" style="max-width:480px">
+  <span class="ico">⚙️</span>
+  <div class="ttl">Conectar base de datos</div>
+  <div class="sub">Solo se hace una vez. Necesitas un proyecto gratis en Supabase.</div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="sn">1</div>
+      <div>Ve a <a href="https://supabase.com" target="_blank">supabase.com</a> → <strong>New project</strong> (cualquier nombre, gratis)</div>
+    </div>
+    <div class="step">
+      <div class="sn">2</div>
+      <div>En el menú → <strong>SQL Editor</strong> → corre este script:</div>
+    </div>
+  </div>
+
+  <div class="sql" id="sql-txt">create table vault_store (
+  id text primary key,
+  payload text not null,
+  updated_at timestamptz default now()
+);
+alter table vault_store enable row level security;
+create policy "rw" on vault_store for all using (true) with check (true);</div>
+  <div style="margin-bottom:16px;text-align:left">
+    <button class="btn btn-ghost btn-sm" onclick="copSQL()">📋 Copiar SQL</button>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="sn">3</div>
+      <div>En <strong>Settings → API</strong> del proyecto, copia la <strong>URL</strong> y la <strong>anon key</strong>:</div>
+    </div>
+  </div>
+
+  <div class="fg">
+    <label>URL del Proyecto</label>
+    <input id="sb-url" type="url" placeholder="https://xxxxxxxxxxxx.supabase.co" autocomplete="off">
+  </div>
+  <div class="fg">
+    <label>Anon / Public Key</label>
+    <div class="fw" style="margin-bottom:0">
+      <input id="sb-key" type="password" placeholder="eyJhbGciO..." autocomplete="off" style="padding-right:42px">
+      <button class="eye" onclick="eye('sb-key',this)">👁</button>
+    </div>
+  </div>
+
+  <button class="btn btn-pri" onclick="doSetup()" style="margin-top:16px">✅ Conectar y continuar</button>
+  <div class="err" id="setup-err"></div>
+</div>
+</div>
+
+<!-- ══════════ PANTALLA 2: LOCK ══════════ -->
+<div class="scr" id="scr-lock">
+<div class="card">
+  <span class="ico">🔐</span>
+  <div class="ttl" id="lk-h">Bóveda aprendoclub</div>
+  <div class="sub" id="lk-p">Ingresa tu contraseña maestra</div>
+  <div class="fw">
+    <input type="password" id="pw1" placeholder="Contraseña maestra" autocomplete="off">
+    <button class="eye" onclick="eye('pw1',this)">👁</button>
+  </div>
+  <div id="pw2-w" style="display:none">
+    <div class="fw">
+      <input type="password" id="pw2" placeholder="Confirmar contraseña" autocomplete="off">
+      <button class="eye" onclick="eye('pw2',this)">👁</button>
+    </div>
+  </div>
+  <button class="btn btn-pri" id="lk-btn" onclick="doAuth()">🔓 Desbloquear</button>
+  <div class="err" id="lk-err"></div>
+  <div class="hint" id="lk-hint"></div>
+  <div style="margin-top:16px;display:flex;gap:8px;justify-content:center">
+    <button class="btn btn-ghost btn-sm" onclick="goSetup()">⚙️ Cambiar Supabase</button>
+  </div>
+</div>
+</div>
+
+<!-- ══════════ PANTALLA 3: APP ══════════ -->
+<div class="scr" id="scr-app">
+  <div class="topbar">
+    <div class="logo">🔐 <span>Bóveda</span> aprendoclub</div>
+    <span class="sync" id="sync">☁️ Conectado</span>
+    <button class="btn btn-pri btn-sm" onclick="openAdd()">+ Nueva</button>
+    <button class="btn btn-ghost btn-sm" onclick="lockVault()">🔒 Cerrar</button>
+  </div>
+  <div class="main">
+    <div class="banner" id="banner">
+      <span>⚠️</span>
+      <div>Algunas contraseñas vienen de Slack y pueden estar desactualizadas. Las que tienen <strong>[⚠️]</strong> en las notas son más antiguas — verifica primero esas.</div>
+      <button onclick="this.closest('.banner').style.display='none'">✕</button>
+    </div>
+    <div class="srow" id="stats"></div>
+    <div class="qrow">
+      <div class="sw"><input type="text" id="q" placeholder="Buscar plataforma, usuario, categoría..." oninput="render()"></div>
+    </div>
+    <div class="cats" id="cats"></div>
+    <div class="grid" id="grid"></div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL AGREGAR / EDITAR ══════════ -->
+<div class="ov" id="m-ent">
+  <div class="modal">
+    <div class="mh" id="m-ttl">Nueva entrada</div>
+    <div class="fg"><label>Categoría</label>
+      <select id="f-cat">
+        <option>📧 Email</option>
+        <option>📱 Redes Sociales</option>
+        <option>🎓 Plataformas</option>
+        <option>⚙️ Infraestructura</option>
+        <option>👥 Clientes</option>
+        <option>📊 Reportes y Tools</option>
+        <option>🔑 Otros</option>
+      </select>
+    </div>
+    <div class="fg"><label>Nombre *</label><input id="f-nm" placeholder="ej. Instagram, WordPress, Kajabi..."></div>
+    <div class="fg"><label>URL</label><input id="f-url" type="url" placeholder="https://..."></div>
+    <div class="fg"><label>Email / Usuario</label><input id="f-usr" placeholder="usuario@email.com o username"></div>
+    <div class="fg"><label>Contraseña</label>
+      <div class="fw" style="margin-bottom:0">
+        <input id="f-pw" type="password" placeholder="Contraseña" style="padding-right:42px">
+        <button class="eye" onclick="eye('f-pw',this)">👁</button>
+      </div>
+    </div>
+    <div class="fg"><label>📲 ¿Quién tiene el código 2FA?</label><input id="f-2fa" placeholder="ej. Cammila, Oriana, Arianna..."></div>
+    <div class="fg"><label>Notas</label><textarea id="f-nt" placeholder="Contexto adicional, fecha de cambio, etc..."></textarea></div>
+    <div class="mf">
+      <button class="btn btn-ghost" onclick="closeM('m-ent')">Cancelar</button>
+      <button class="btn btn-pri" onclick="saveEnt()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL ELIMINAR ══════════ -->
+<div class="ov" id="m-del">
+  <div class="modal" style="max-width:360px">
+    <div class="mh">🗑️ Eliminar entrada</div>
+    <div class="dw">Esta acción no se puede deshacer.</div>
+    <div id="del-nm" style="font-weight:700;font-size:15px;margin-bottom:18px"></div>
+    <div class="mf">
+      <button class="btn btn-ghost" onclick="closeM('m-del')">Cancelar</button>
+      <button class="btn btn-red" onclick="confDel()">🗑️ Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+/* ══ KEYS DE LOCALSTORAGE ══════════════════════════════ */
+const LS_URL  = 'apc_sb_url';
+const LS_AKEY = 'apc_sb_akey';
+const LS_SALT = 'apc_salt_cache';
+
+/* ══ SUPABASE ═══════════════════════════════════════════ */
+let sb = null;
+function initSB(url, akey){
+  const {createClient} = supabase;
+  sb = createClient(url, akey);
+}
+async function dbGet(id){
+  const {data,error} = await sb.from('vault_store').select('payload').eq('id',id).maybeSingle();
+  if(error) throw new Error(error.message);
+  return data?.payload ?? null;
+}
+async function dbSet(id, payload){
+  const {error} = await sb.from('vault_store')
+    .upsert({id, payload, updated_at: new Date().toISOString()}, {onConflict:'id'});
+  if(error) throw new Error(error.message);
+}
+
+/* ══ CRYPTO (AES-256-GCM + PBKDF2) ═════════════════════ */
+const IT = 150000;
+let ck   = null;  // CryptoKey
+let salt = null;  // Uint8Array
+
+async function mkSalt(){
+  // 1. Supabase
+  try{
+    const hex = await dbGet('_salt');
+    if(hex){
+      localStorage.setItem(LS_SALT, hex);
+      return h2b(hex);
+    }
+  } catch(e){}
+  // 2. Local cache
+  const cached = localStorage.getItem(LS_SALT);
+  if(cached) return h2b(cached);
+  // 3. Generate new
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  const hex = b2h(b);
+  try{ await dbSet('_salt', hex); } catch(e){}
+  localStorage.setItem(LS_SALT, hex);
+  return b;
+}
+function b2h(b){ return [...b].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+function h2b(h){ return new Uint8Array(h.match(/.{2}/g).map(x=>parseInt(x,16))); }
+
+async function deriveKey(pw, s){
+  const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt:s,iterations:IT,hash:'SHA-256'}, km, {name:'AES-GCM',length:256}, false, ['encrypt','decrypt']);
+}
+async function enc(k, data){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM',iv}, k, new TextEncoder().encode(JSON.stringify(data)));
+  const buf = new Uint8Array(12+ct.byteLength);
+  buf.set(iv); buf.set(new Uint8Array(ct),12);
+  return btoa(String.fromCharCode(...buf));
+}
+async function dec(k, b64){
+  const buf = new Uint8Array(atob(b64).split('').map(c=>c.charCodeAt(0)));
+  const pt  = await crypto.subtle.decrypt({name:'AES-GCM',iv:buf.slice(0,12)}, k, buf.slice(12));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+async function persist(){
+  const payload = await enc(ck, vault);
+  try{
+    await dbSet('main', payload);
+    setSyn(true);
+  } catch(e){
+    setSyn(false);
+    toast('⚠️ No se guardó en la nube. Revisa tu conexión.');
+  }
+}
+
+/* ══ SEED (encontrado en Slack 29/10/2026) ════════════ */
+const SEED = [
+  {id:'s01',cat:'📧 Email',name:'hello@aprendoseo.com',url:'',user:'hello@aprendoseo.com',pw:'aprendoseo$7',twofa:'Cammila',notes:'Email principal aprendoseo. Códigos en #codigos-verificacion Slack. [Verificado ago 2026]'},
+  {id:'s02',cat:'📧 Email',name:'hello@ariannalupi.com',url:'',user:'hello@ariannalupi.com',pw:'',twofa:'Arianna',notes:'Email personal de Arianna. Usado como login en WordPress y Loom. Contraseña no encontrada en Slack.'},
+  {id:'s03',cat:'📧 Email',name:'team@aprendoseo.com',url:'',user:'team@aprendoseo.com',pw:'%%GBbcn1',twofa:'Cammila',notes:'Email del equipo. [⚠️ Encontrado oct 2025 — verificar si sigue activa]'},
+  {id:'s04',cat:'📱 Redes Sociales',name:'Instagram @aprendoclub',url:'https://instagram.com',user:'aprendoclub',pw:'Lupi$2024',twofa:'Cammila',notes:'Cuenta IG de aprendoclub. [Verificado oct 2026]'},
+  {id:'s05',cat:'📱 Redes Sociales',name:'TikTok aprendoclub',url:'https://tiktok.com',user:'hola@aprendoseo.com',pw:'Ari$3000',twofa:'Cammila',notes:'TikTok de aprendoclub. [Verificado sep–oct 2026]'},
+  {id:'s06',cat:'📱 Redes Sociales',name:'LinkedIn – Arianna Lupi',url:'https://linkedin.com',user:'Ariannalupi@hotmail.com',pw:'Aprendoseo700',twofa:'Oriana',notes:'LinkedIn de Arianna. Actualizado 26 oct 2026 (anterior: Claudio.3010).'},
+  {id:'s07',cat:'🎓 Plataformas',name:'WordPress aprendoclub.com',url:'https://www.aprendoclub.com/admin/login',user:'hello@ariannalupi.com',pw:'d0WuwNCCPAHOkB-7',twofa:'Miguel',notes:'Admin WordPress sitio principal. [Verificado 5 oct 2026]'},
+  {id:'s08',cat:'🎓 Plataformas',name:'Kajabi – Academia',url:'https://academia.aprendoclub.com/login',user:'comunidad@aprendoseo.com',pw:'k7$NqR29vXbP',twofa:'Cammila',notes:'Kajabi aprendoclub. Admin: app.kajabi.com/admin/sites/2148216823 [⚠️ Encontrado mar 2026 — verificar]'},
+  {id:'s09',cat:'🎓 Plataformas',name:'Apturio (CRM)',url:'https://app.apturio.com',user:'hola@aprendoseo.com',pw:'Seolatam2026**',twofa:'Cammila',notes:'CRM de aprendoclub. [Verificado jul 2026]'},
+  {id:'s10',cat:'🎓 Plataformas',name:'Loom',url:'https://loom.com',user:'hello@ariannalupi.com',pw:'aprendoseo700',twofa:'Arianna',notes:'Cuenta Loom de Arianna. [Verificado jul 2026]'},
+  {id:'s11',cat:'⚙️ Infraestructura',name:'Contabo / n8n',url:'',user:'',pw:'tDuqFxQ3F6ce',twofa:'Cammila',notes:'Servidor Contabo con n8n. Solo se encontró la contraseña, no el usuario. [⚠️ Encontrado nov 2025 — verificar]'},
+  {id:'s12',cat:'📊 Reportes y Tools',name:'Supermetrics Dashboard',url:'https://studio.supermetrics.com/d/3aace848-f213-4681-956e-ee5eae007cf1',user:'',pw:'1234',twofa:'',notes:'Dashboard Supermetrics. Clave del link compartido. [Verificado oct 2026]'},
+  {id:'s13',cat:'📊 Reportes y Tools',name:'Argus PPC – Propuesta oct 2026',url:'https://reportes.argusppc.com/r/aprendoclub-propuesta-oct',user:'',pw:'Ari2026',twofa:'',notes:'Reporte Argus PPC. Clave del link compartido. [Encontrado 20 oct 2026]'},
+];
+
+/* ══ ESTADO ═════════════════════════════════════════════ */
+let vault  = [];
+let editId = null;
+let delId  = null;
+let fCat   = 'all';
+let firstTime = false;
+let seq = 0;
+function nid(){ return 'u'+Date.now().toString(36)+(++seq).toString(36); }
+
+/* ══ SCREENS ════════════════════════════════════════════ */
+function show(id){ document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on')); document.getElementById(id).classList.add('on'); }
+
+/* ══ INIT ═══════════════════════════════════════════════ */
+window.onload = () => {
+  const url  = localStorage.getItem(LS_URL);
+  const akey = localStorage.getItem(LS_AKEY);
+  if(url && akey){ initSB(url, akey); goLock(); }
+  else goSetup();
+};
+
+/* ══ SETUP ══════════════════════════════════════════════ */
+function goSetup(){ show('scr-setup'); }
+
+async function doSetup(){
+  const url  = document.getElementById('sb-url').value.trim();
+  const akey = document.getElementById('sb-key').value.trim();
+  const err  = document.getElementById('setup-err');
+  err.textContent='';
+  if(!url || !akey){ err.textContent='Completa los dos campos.'; return; }
+  try{
+    initSB(url, akey);
+    await sb.from('vault_store').select('id').limit(1); // test connection
+    localStorage.setItem(LS_URL, url);
+    localStorage.setItem(LS_AKEY, akey);
+    goLock();
+    toast('✅ Conectado a Supabase');
+  } catch(e){
+    err.textContent='No se pudo conectar. Verifica URL, anon key y que la tabla exista.';
+  }
+}
+
+function copSQL(){
+  navigator.clipboard.writeText(document.getElementById('sql-txt').textContent)
+    .then(()=>toast('📋 SQL copiado'))
+    .catch(()=>{});
+}
+
+/* ══ LOCK ════════════════════════════════════════════════ */
+function goLock(){
+  show('scr-lock');
+  firstTime = false;
+  document.getElementById('lk-h').textContent = 'Bóveda aprendoclub';
+  document.getElementById('lk-p').textContent = 'Ingresa tu contraseña maestra';
+  document.getElementById('lk-btn').textContent = '🔓 Desbloquear';
+  document.getElementById('lk-hint').textContent = '';
+  document.getElementById('pw2-w').style.display = 'none';
+  document.getElementById('pw1').addEventListener('keydown', e=>{ if(e.key==='Enter') doAuth(); }, {once:true});
+  document.getElementById('pw2').addEventListener('keydown', e=>{ if(e.key==='Enter') doAuth(); }, {once:true});
+}
+
+async function doAuth(){
+  const pw  = document.getElementById('pw1').value;
+  const err = document.getElementById('lk-err');
+  err.textContent='';
+  if(!pw || pw.length<4){ err.textContent='Mínimo 4 caracteres.'; return; }
+
+  const btn = document.getElementById('lk-btn');
+  btn.disabled=true; btn.textContent='⏳ Procesando...';
+
+  try{
+    salt = await mkSalt();
+    ck   = await deriveKey(pw, salt);
+    const stored = await dbGet('main');
+
+    if(!stored){
+      // Primera vez — necesita confirmación de contraseña
+      if(!firstTime){
+        firstTime = true;
+        document.getElementById('lk-h').textContent  = 'Crear contraseña maestra';
+        document.getElementById('lk-p').textContent  = 'Primera vez: confirma tu contraseña';
+        document.getElementById('lk-btn').textContent= '🔐 Crear Bóveda';
+        document.getElementById('lk-hint').textContent='⚠️ Anota bien esta contraseña — no se puede recuperar.';
+        document.getElementById('pw2-w').style.display='block';
+        btn.disabled=false; return;
+      }
+      const pw2 = document.getElementById('pw2').value;
+      if(pw!==pw2){ err.textContent='Las contraseñas no coinciden.'; btn.disabled=false; btn.textContent='🔐 Crear Bóveda'; return; }
+      vault=[...SEED];
+      await persist();
+    } else {
+      vault = await dec(ck, stored);
+    }
+
+    show('scr-app');
+    setSyn(true);
+    renderAll();
+  } catch(e){
+    err.textContent = 'Contraseña incorrecta o error de conexión.';
+    ck=null;
+  }
+  btn.disabled=false;
+  btn.textContent = firstTime ? '🔐 Crear Bóveda' : '🔓 Desbloquear';
+}
+
+function lockVault(){ ck=null; vault=[]; fCat='all'; goLock(); document.getElementById('pw1').value=''; document.getElementById('lk-err').textContent=''; }
+
+/* ══ RENDER ═════════════════════════════════════════════ */
+function renderAll(){ rStats(); rCats(); render(); }
+function getCats(){ return [...new Set(vault.map(e=>e.cat))]; }
+
+function rStats(){
+  document.getElementById('stats').innerHTML =
+    `<div class="stat"><div class="stat-n">${vault.length}</div><div class="stat-l">Total</div></div>` +
+    getCats().map(c=>`<div class="stat"><div class="stat-n">${vault.filter(e=>e.cat===c).length}</div><div class="stat-l">${c}</div></div>`).join('');
+}
+function rCats(){
+  document.getElementById('cats').innerHTML =
+    `<button class="cbt${fCat==='all'?' on':''}" onclick="setCat('all')">🔑 Todas (${vault.length})</button>` +
+    getCats().map(c=>`<button class="cbt${fCat===c?' on':''}" onclick="setCat(${JSON.stringify(c)})">${esc(c)} (${vault.filter(e=>e.cat===c).length})</button>`).join('');
+}
+function setCat(c){ fCat=c; rCats(); render(); }
+
+function render(){
+  const q=(document.getElementById('q').value||'').toLowerCase();
+  let data=vault;
+  if(fCat!=='all') data=data.filter(e=>e.cat===fCat);
+  if(q) data=data.filter(e=>[e.name,e.user,e.cat,e.notes].join(' ').toLowerCase().includes(q));
+  const el=document.getElementById('grid');
+  if(!data.length){ el.innerHTML=`<div class="empty"><div class="empty-i">🔍</div><div class="empty-h">Sin resultados</div><div>Prueba otro término o agrega una entrada.</div></div>`; return; }
+  el.innerHTML=data.map(mkCard).join('');
+}
+
+function cIco(cat){ const m={Email:'📧',Redes:'📱',Plataformas:'🎓',Infra:'⚙️',Clientes:'👥',Reportes:'📊',Otros:'🔑'}; for(const [k,v] of Object.entries(m)) if(cat.includes(k)) return v; return '🔑'; }
+
+function mkCard(e){
+  return `<div class="ec">
+  <div class="et">
+    <div class="ei">${cIco(e.cat)}</div>
+    <div class="en"><div class="enm" title="${esc(e.name)}">${esc(e.name)}</div><div class="ect">${esc(e.cat)}</div></div>
+    <div class="ea">
+      <button class="btn btn-ghost btn-sm" onclick="openEdit('${e.id}')">✏️</button>
+      <button class="btn btn-red btn-sm" onclick="openDel('${e.id}')">🗑</button>
+    </div>
+  </div>
+  <div class="flds">
+    ${e.user?`<div class="fr"><div class="fl">Usuario / Email</div><div class="fv"><span style="font-family:monospace">${esc(e.user)}</span><button class="ib" onclick="cpF('${e.id}','user')" title="Copiar">📋</button></div></div>`:''}
+    ${e.pw?`<div class="fr"><div class="fl">Contraseña</div><div class="fv"><span id="pw-${e.id}" class="pm">••••••••</span><button class="ib" onclick="togPw('${e.id}')">👁</button><button class="ib" onclick="cpF('${e.id}','pw')">📋</button></div></div>`:''}
+    ${e.url?`<div class="fr"><div class="fl">URL</div><div class="fv"><a href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.url.replace(/^https?:\/\//,''))}</a></div></div>`:''}
+    ${e.twofa?`<div class="fr"><div class="fl">Código 2FA</div><div class="fv"><span class="tf">📲 Pedir a: ${esc(e.twofa)}</span></div></div>`:''}
+  </div>
+  ${e.notes?`<div class="nt">📝 ${esc(e.notes)}</div>`:''}
+</div>`;
+}
+
+/* ══ CRUD ════════════════════════════════════════════════ */
+function clrForm(){ ['f-nm','f-url','f-usr','f-pw','f-2fa','f-nt'].forEach(id=>document.getElementById(id).value=''); document.getElementById('f-cat').selectedIndex=0; }
+function openAdd(){ editId=null; document.getElementById('m-ttl').textContent='+ Nueva entrada'; clrForm(); openM('m-ent'); }
+function openEdit(id){
+  editId=id; const e=vault.find(x=>x.id===id); if(!e) return;
+  document.getElementById('m-ttl').textContent='✏️ Editar entrada';
+  document.getElementById('f-cat').value=e.cat;
+  document.getElementById('f-nm').value=e.name||'';
+  document.getElementById('f-url').value=e.url||'';
+  document.getElementById('f-usr').value=e.user||'';
+  document.getElementById('f-pw').value=e.pw||'';
+  document.getElementById('f-2fa').value=e.twofa||'';
+  document.getElementById('f-nt').value=e.notes||'';
+  openM('m-ent');
+}
+async function saveEnt(){
+  const name=document.getElementById('f-nm').value.trim();
+  if(!name){ alert('El nombre es requerido.'); return; }
+  const entry={id:editId||nid(),cat:document.getElementById('f-cat').value,name,url:document.getElementById('f-url').value.trim(),user:document.getElementById('f-usr').value.trim(),pw:document.getElementById('f-pw').value,twofa:document.getElementById('f-2fa').value.trim(),notes:document.getElementById('f-nt').value.trim()};
+  vault=editId?vault.map(e=>e.id===editId?entry:e):[...vault,entry];
+  await persist(); closeM('m-ent'); renderAll(); toast('✅ Guardado en la nube ☁️');
+}
+function openDel(id){ delId=id; const e=vault.find(x=>x.id===id); document.getElementById('del-nm').textContent=e?e.name:''; openM('m-del'); }
+async function confDel(){ vault=vault.filter(e=>e.id!==delId); await persist(); closeM('m-del'); renderAll(); toast('🗑️ Eliminado'); }
+
+/* ══ MODALS ══════════════════════════════════════════════ */
+function openM(id){ document.getElementById(id).classList.add('open'); }
+function closeM(id){ document.getElementById(id).classList.remove('open'); }
+['m-ent','m-del'].forEach(id=>{ document.getElementById(id).addEventListener('click',function(ev){ if(ev.target===this) closeM(id); }); });
+
+/* ══ HELPERS ═════════════════════════════════════════════ */
+function togPw(id){
+  const e=vault.find(x=>x.id===id); const el=document.getElementById('pw-'+id); if(!e||!el) return;
+  if(el.classList.contains('pm')){ el.textContent=e.pw; el.classList.replace('pm','pc'); }
+  else{ el.textContent='••••••••'; el.classList.replace('pc','pm'); }
+}
+function cpF(id,field){
+  const e=vault.find(x=>x.id===id); if(!e) return; const v=e[field]||''; if(!v) return;
+  navigator.clipboard.writeText(v).then(()=>toast('📋 Copiado')).catch(()=>{ const t=Object.assign(document.createElement('textarea'),{value:v}); Object.assign(t.style,{position:'fixed',opacity:'0'}); document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); toast('📋 Copiado'); });
+}
+function eye(id,btn){ const el=document.getElementById(id); el.type=el.type==='password'?'text':'password'; btn.textContent=el.type==='password'?'👁':'🙈'; }
+function setSyn(ok){ const el=document.getElementById('sync'); if(!el) return; el.textContent=ok?'☁️ Conectado':'❌ Sin conexión'; el.className='sync'+(ok?' ok':' no'); }
+let toastT;
+function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),2500); }
+function esc(s){ if(!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>
