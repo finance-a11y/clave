@@ -281,6 +281,10 @@ const LS_URL  = 'apc_sb_url';
 const LS_AKEY = 'apc_sb_akey';
 const LS_SALT = 'apc_salt_cache';
 
+/* ══ CREDENCIALES FIJAS (no pide setup) ════════════════ */
+const FIXED_URL  = 'https://iodoigwbihnnhugpohgm.supabase.co';
+const FIXED_AKEY = 'sb_publishable_29w0NsVp-x-xYUG1YEj43A_e5LSGENw';
+
 /* ══ SUPABASE ═══════════════════════════════════════════ */
 let sb = null;
 function initSB(url, akey){
@@ -383,10 +387,11 @@ function show(id){ document.querySelectorAll('.scr').forEach(s=>s.classList.remo
 
 /* ══ INIT ═══════════════════════════════════════════════ */
 window.onload = () => {
-  const url  = localStorage.getItem(LS_URL);
-  const akey = localStorage.getItem(LS_AKEY);
-  if(url && akey){ initSB(url, akey); goLock(); }
-  else goSetup();
+  // Usar credenciales fijas siempre (nunca pide setup)
+  initSB(FIXED_URL, FIXED_AKEY);
+  localStorage.setItem(LS_URL, FIXED_URL);
+  localStorage.setItem(LS_AKEY, FIXED_AKEY);
+  goLock();
 };
 
 /* ══ SETUP ══════════════════════════════════════════════ */
